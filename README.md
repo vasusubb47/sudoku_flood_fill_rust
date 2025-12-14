@@ -6,10 +6,11 @@ This project is a Rust-based exploration into solving Sudoku puzzles by implemen
 
 The core idea is to represent the Sudoku grid as a hierarchical structure of groups and cells. When a number is placed on the board, the program propagates this information to eliminate that number as a possibility in the corresponding row, column, and 3x3 block. This is achieved through a system of bitmasks that efficiently track available candidates for each cell, row, column, and group.
 
-The code is structured around three main data structures:
--   `Cell`: Represents a single square on the board, tracking its value and a bitmask of possible candidates.
--   `Group`: Represents a 3x3 block of cells.
--   `Grid`: The top-level structure representing the entire 9x9 board.
+The code is structured into several modules:
+-   `src/main.rs`: Contains the main application logic, including reading a puzzle from a file.
+-   `src/cell.rs`: Defines the `Cell` struct, representing a single square on the board.
+-   `src/group.rs`: Defines the `Group` struct, representing a 3x3 block of cells.
+-   `src/grid.rs`: Defines the `Grid` struct, the top-level structure for the entire 9x9 board.
 
 ## How To Run
 
@@ -23,6 +24,6 @@ You must have the Rust toolchain (including `rustc` and `cargo`) installed on yo
     ```sh
     cargo run
     ```
-4.  The program will prompt you to enter a cell's coordinates (e.g., `0 0` for the top-left cell). It will then set the value `5` at that position and print debug information showing how candidates are eliminated based on this new value.
+4.  The program will automatically load the puzzle from `data/sudoku1.txt`, which triggers the constraint propagation logic. You will see extensive debug output in your terminal showing the process of setting the initial values and eliminating candidates across the grid.
 
-This demonstrates the core propagation logic of the solver.
+The application is no longer interactive. It demonstrates the file loading and propagation logic.

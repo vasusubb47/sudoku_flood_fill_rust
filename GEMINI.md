@@ -4,27 +4,41 @@ This document outlines the structure and core logic of the Rust-based Sudoku sol
 
 ## Program Structure
 
-The program represents the Sudoku grid using three nested data structures: `Cell`, `Group`, and `Grid`.
+The program's code is organized into several modules within the `src` directory:
+- `main.rs`: The main entry point, handles file loading.
+- `cell.rs`: Defines the `Cell` struct.
+- `group.rs`: Defines the `Group` struct.
+- `grid.rs`: Defines the `Grid` struct.
+
+The grid itself is represented using three nested data structures: `Cell`, `Group`, and `Grid`.
 
 ### `Cell`
-This is the most basic unit, representing a single square on the board.
+This is the most basic unit, representing a single square on the board. It is defined in `src/cell.rs`.
 
 -   **`value: Option<u8>`**: Stores the confirmed digit (1-9) for the cell. `None` if the value is not yet solved.
 -   **`is_given: bool`**: `true` if the cell's value is part of the initial puzzle.
 -   **`candidates: u16`**: A bitmask representing potential values for the cell. A `1` at the *n*th position means *n* is a possible candidate.
+-   **`has_value() -> bool`**: A method to check if the cell has a confirmed value.
 
 ### `Group`
-This struct represents a 3x3 block of cells.
+This struct represents a 3x3 block of cells. It is defined in `src/group.rs`.
 
 -   **`cells: [[Cell; 3]; 3]`**: A 3x3 array containing the `Cell` structs for that block.
 -   **`group_values: u16`**: A bitmask tracking which values (1-9) are already present within this 3x3 group.
 -   **`group_candidates: [[u16; 3]; 2]`**: Tracks available candidates for each row and column *within* the 3x3 group.
 
 ### `Grid`
-This is the top-level structure for the entire 9x9 Sudoku board.
+This is the top-level structure for the entire 9x9 Sudoku board. It is defined in `src/grid.rs`.
 
 -   **`sudoku_cells: [[Group; 3]; 3]`**: A 3x3 array of `Group`s that make up the full grid.
 -   **`candidates: [[u16; 9]; 2]`**: Tracks available candidates for each of the 9 global rows and 9 global columns.
+
+## File Loading
+
+The program now starts by loading a Sudoku puzzle from a file.
+- The `main` function calls `read_sudoku_from_file` to read a puzzle from `data/sudoku1.txt`.
+- `read_sudoku_from_file` parses a 9x9 grid where digits from 1-9 are given values and `0` is treated as an empty cell.
+- As it parses, it calls `grid.set_value()` for each given number, which triggers the constraint propagation.
 
 ## Core Propagation of Values
 

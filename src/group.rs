@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{CellPossibleValues, Directional, DirectionalCandidate, PrintCell, SingleCandidate, cell::Cell};
+use crate::{cell::Cell, utility::{CellPossibleValues, Directional, DirectionalCandidate, PrintCell, SingleCandidate}};
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 pub struct Group {
@@ -60,6 +60,55 @@ impl Group {
         }
     }
 
+    fn get_remaining_group_values(&self) -> Vec<u8> {
+        let mut values: Vec<u8> = Vec::new();
+        for val in 1..10 {
+            if (self.group_values & (1 << val)) == 0 {
+                values.push(val as u8);
+            }
+        }
+        values
+    }
+
+    pub fn get_single_candidate_possible_cell_value(&self, queue: &mut Vec<SingleCandidate>, grid_row: usize, grid_col: usize) {
+        if self.is_complete() {
+            return;
+        }
+        let remaining_values = self.get_remaining_group_values();
+        for val in &remaining_values {
+            let mut possible_cells: Vec<((usize, usize), u8)> = Vec::new();
+            for row in 0..3 {
+                for col in 0..3 {
+                    if !self.cells[row][col].has_value() {
+                        let possible_values = self.cells[row][col].get_possible_values();
+                        if possible_values.contains(val) {
+                            possible_cells.push(((row, col), *val));
+                        }
+                    }
+                }
+            }
+            if possible_cells.len() == 1 {
+                let ((row, col), value) = possible_cells[0];
+
+                // check if already in queue
+                let mut already_in_queue = false;
+                for candidate in queue.iter() {
+                    if candidate.row == grid_row * 3 + row && candidate.column == grid_col * 3 + col && candidate.value == value {
+                        already_in_queue = true;
+                        break;
+                    }
+                }
+                if !already_in_queue {
+                    queue.push(SingleCandidate {
+                        row: grid_row * 3 + row,
+                        column: grid_col * 3 + col,
+                        value,
+                    });
+                }
+            }
+        }
+    }
+
     pub fn recive_propagation(&mut self, row: Option<u8>, col: Option<u8>, val: u8) {
         // propagate to group candidates
         if let Some(col) = col {
@@ -86,61 +135,41 @@ impl Group {
         self.group_values.count_ones() == 9
     }
 
-    pub fn get_directional_candidates(&self, queue: &mut Vec<DirectionalCandidate>) {
+    pub fn get_directional_candidates(&self, queue: &mut Vec<DirectionalCandidate>, grid_row: usize, grid_col: usize) {
         if self.is_complete() {
             return;
         }
-        // check if a value can be only fit in one row or column
-        let mut row_candidates = 0b0;
-        let mut col_candidates = 0b0;
-        for val in 1..9 {
-            let mut row_count = 0;
-            let mut col_count = 0;
+        for val in 1..10 {
+            if (self.group_values & (1 << val)) != 0 {
+                continue;
+            }
+            let mut row_count: Vec<u8> = Vec::new();
+            let mut col_count: Vec<u8> = Vec::new();
             for idx in 0..3 {
                 if (self.group_candidates[0][idx] & (1 << val)) != 0 {
-                    row_count += 1;
+                    row_count.push(idx as u8);
                 }
                 if (self.group_candidates[1][idx] & (1 << val)) != 0 {
-                    col_count += 1;
+                    col_count.push(idx as u8);
                 }
             }
-            if row_count == 1 {
-                row_candidates |= 1 << val;
+            if row_count.len() == 1 {
+                queue.push(DirectionalCandidate {
+                    direction: Directional::Row,
+                    index: row_count[0] + (grid_row as u8 * 3),
+                    grid_row,
+                    grid_col,
+                    value: val as u8,
+                });
             }
-            if col_count == 1 {
-                col_candidates |= 1 << val;
-            }
-        }
-        if row_candidates != 0 {
-            for val in 1..10 {
-                if (row_candidates & (1 << val)) != 0 {
-                    for idx in 0..3 {
-                        if (self.group_candidates[0][idx] & (1 << val)) != 0 {
-                            queue.push(DirectionalCandidate {
-                                direction: Directional::Row,
-                                index: idx as u8,
-                                value: val as u8,
-                            });
-                            // return Some((Directional::Row, idx as u8, val as u8));
-                        }
-                    }
-                }
-            }
-        }
-        if col_candidates != 0 {
-            for val in 1..10 {
-                if (col_candidates & (1 << val)) != 0 {
-                    for idx in 0..3 {
-                        if (self.group_candidates[1][idx] & (1 << val)) != 0 {
-                            queue.push(DirectionalCandidate {
-                                direction: Directional::Column,
-                                index: idx as u8,
-                                value: val as u8,
-                            });
-                            // return Some((Directional::Column, idx as u8, val as u8));
-                        }
-                    }
-                }
+            if col_count.len() == 1 {
+                queue.push(DirectionalCandidate {
+                    direction: Directional::Column,
+                    index: col_count[0] + (grid_col as u8 * 3),
+                    grid_row,
+                    grid_col,
+                    value: val as u8,
+                });
             }
         }
     }
@@ -190,9 +219,9 @@ impl Group {
         }
     }
 
-    pub fn print_cell_info(&self, grid_row: usize, grid_col: usize) {
+    pub fn _print_cell_info(&self, grid_row: usize, grid_col: usize) {
         let row = grid_row % 3;
         let col = grid_col % 3;
-        self.cells[row][col].print_info();
+        self.cells[row][col]._print_info();
     }
 }

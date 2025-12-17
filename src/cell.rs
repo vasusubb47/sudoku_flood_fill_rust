@@ -46,7 +46,7 @@ impl Cell {
         possible_values
     }
 
-    pub fn print_info(&self) {
+    pub fn _print_info(&self) {
         match self.value {
             Some(v) => println!("Cell value: {}, is_given: {}", v, self.is_given),
             None => println!("Cell is empty, candidates: {:09b}", self.candidates),

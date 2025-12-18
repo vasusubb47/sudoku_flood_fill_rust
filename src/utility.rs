@@ -1,9 +1,11 @@
 
+#[derive(Debug)]
 pub enum Directional {
     Row,
     Column,
 }
 
+#[derive(Debug)]
 pub struct DirectionalCandidate {
     pub direction: Directional,
     pub index: u8,

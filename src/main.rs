@@ -8,23 +8,34 @@ mod utility;
 use crate::{grid::Grid, utility::CellPossibleValues};
 
 fn main() {
-    let mut problem = Grid::default();
     let args: Vec<String> = env::args().collect();
     let sudoku_file = "data/".to_string() + if args.len() > 1 {
         &args[1]
     } else {
         "sudoku1.txt"
     };
+
+    let mut problem = Grid::default();
+
     problem.load_from_file(&sudoku_file);
+    
+    let start_time = std::time::Instant::now();
     let (solved, count) = problem.solve();
+    let elapsed_time = start_time.elapsed();
+    
     if solved {
         println!("Sudoku solved successfully!");
         println!("************************************************");
         println!("Final Sudoku Grid, after {} iterations:", count);
+        println!("Elapsed time: {:?}", elapsed_time);
         problem.print_grid();
         println!("************************************************");
     } else {
         println!("Could not solve the Sudoku completely.");
+        println!("************************************************");
+        problem.print_grid();
+        println!("Elapsed time: {:?}", elapsed_time);
+        println!("Remaining possible values in cells:");
         let mut remaining_values: Vec<CellPossibleValues> = Vec::new();
         problem.get_remaining_values(&mut remaining_values);
         for cell in remaining_values {

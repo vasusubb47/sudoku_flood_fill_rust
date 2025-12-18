@@ -29,7 +29,7 @@ impl Grid {
     pub fn solve(&mut self) -> (bool, u8) {
 
         // print grid
-        self.print_grid();
+        // self.print_grid();
         println!("Solving Sudoku...");
 
         // create a queue for single candidates and directional candidates
@@ -40,8 +40,12 @@ impl Grid {
         let mut count = 0;
         while !self.is_complete() {
             count += 1;
+            if count > 30 {
+                println!("Reached maximum iterations, stopping.");
+                break;
+            }
 
-            self.print_grid();
+            // self.print_grid();
 
             // get candidates
             // self.get_directional_and_single_candidates(&mut directional_candidate_queue, &mut single_candidate_queue);
@@ -64,18 +68,42 @@ impl Grid {
                 // println!("Setting single candidate value {} at ({}, {})", single_candidate.value, single_candidate.row, single_candidate.column);
                 self.set_value(single_candidate.row, single_candidate.column, single_candidate.value, false);
             }
-            // directional_candidate_queue.clear();
+            directional_candidate_queue.clear();
+            self.print_grid();
+            self.get_directional_candidates(&mut directional_candidate_queue);
+            println!("Directional candidates found in iteration {}: {}", count, directional_candidate_queue.len());
+            for dc in &directional_candidate_queue {
+                println!("  {:?}", dc);
+            }
             // process directional candidates
             while let Some(directional_candidate) = directional_candidate_queue.pop() {
-                match directional_candidate.direction {
-                    Directional::Row => {
-                        println!("Setting directional candidate value {} at row {}, group ({}, {})", directional_candidate.value, directional_candidate.index, directional_candidate.grid_row, directional_candidate.grid_col);
-                    }
-                    Directional::Column => {
-                        println!("Setting directional candidate value {} at column {}, group ({}, {})", directional_candidate.value, directional_candidate.index, directional_candidate.grid_row, directional_candidate.grid_col);
+                // progate value to the directional groups
+                for row in 0..3 {
+                    for col in 0..3 {
+                        if directional_candidate.grid_col == col && directional_candidate.grid_row == row {
+                            continue;
+                        }
+                        match directional_candidate.direction {
+                            Directional::Row => {
+                                if row != directional_candidate.grid_row {
+                                    continue;
+                                }
+                            },
+                            Directional::Column => {
+                                if col != directional_candidate.grid_col {
+                                    continue;
+                                }
+                            },
+                        };
+                        println!("Propagating directional {:?} to group ({}, {}), value {}", directional_candidate.direction, row, col, directional_candidate.value);
+                        self.sudoku_group[row][col].recive_directional_propagation(&directional_candidate);
                     }
                 }
             }
+            
+            // print debug info
+            self.print_grid();
+            // panic!("terminate after directional propagation for debug");
         }
         println!("Total iterations to solve: {}", count);
         (self.is_complete(), count)

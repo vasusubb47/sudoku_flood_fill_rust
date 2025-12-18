@@ -75,6 +75,9 @@ impl Group {
             return;
         }
         let remaining_values = self.get_remaining_group_values();
+        if remaining_values.len() == 1 {
+            return; // no need to check if only one value remains
+        }
         for val in &remaining_values {
             let mut possible_cells: Vec<((usize, usize), u8)> = Vec::new();
             for row in 0..3 {
@@ -131,6 +134,45 @@ impl Group {
         }
     }
 
+    pub fn recive_directional_propagation(&mut self, direction_candidate: &DirectionalCandidate) {
+        if self.is_complete() {
+            return;
+        }
+        if self.group_values & (1 << direction_candidate.value) != 0 {
+            return;
+        }
+        match direction_candidate.direction {
+            Directional::Row => {
+                self.group_candidates[0][direction_candidate.index as usize] &= !(1 << direction_candidate.value); // row candidates
+                // propagate to cells in the row
+                for col in 0..3 {
+                    if !self.cells[direction_candidate.index as usize][col].has_value() {
+                        // print debug info
+                        println!("Propagating directional cell ({}, {}), value {}", direction_candidate.index, col, direction_candidate.value);
+                        self.cells[direction_candidate.index as usize][col].clear_candidate(direction_candidate.value);
+                        // print debug info
+                        let possible_values = self.cells[direction_candidate.index as usize][col].get_possible_values();
+                        println!("Possible values after clearing candidate: {:?}", possible_values);
+                    }
+                }
+            }
+            Directional::Column => {
+                self.group_candidates[1][direction_candidate.index as usize] &= !(1 << direction_candidate.value); // column candidates
+                // propagate to cells in the column
+                for row in 0..3 {
+                    if !self.cells[row][direction_candidate.index as usize].has_value() {
+                        // print debug info
+                        println!("Propagating directional cell ({}, {}), value {}", row, direction_candidate.index, direction_candidate.value);
+                        self.cells[row][direction_candidate.index as usize].clear_candidate(direction_candidate.value);
+                        // print debug info
+                        let possible_values = self.cells[row][direction_candidate.index as usize].get_possible_values();
+                        println!("Possible values after clearing candidate: {:?}", possible_values);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn is_complete(&self) -> bool {
         self.group_values.count_ones() == 9
     }
@@ -145,18 +187,24 @@ impl Group {
             }
             let mut row_count: Vec<u8> = Vec::new();
             let mut col_count: Vec<u8> = Vec::new();
-            for idx in 0..3 {
-                if (self.group_candidates[0][idx] & (1 << val)) != 0 {
-                    row_count.push(idx as u8);
+            for row in 0..3 {
+                if !self.cells[row][0].has_value() && self.cells[row][0].can_set_value(val as u8) ||
+                   !self.cells[row][1].has_value() && self.cells[row][1].can_set_value(val as u8) ||
+                   !self.cells[row][2].has_value() && self.cells[row][2].can_set_value(val as u8) {
+                    row_count.push(row as u8);
                 }
-                if (self.group_candidates[1][idx] & (1 << val)) != 0 {
-                    col_count.push(idx as u8);
+            }
+            for col in 0..3 {
+                if !self.cells[0][col].has_value() && self.cells[0][col].can_set_value(val as u8) ||
+                   !self.cells[1][col].has_value() && self.cells[1][col].can_set_value(val as u8) ||
+                   !self.cells[2][col].has_value() && self.cells[2][col].can_set_value(val as u8) {
+                    col_count.push(col as u8);
                 }
             }
             if row_count.len() == 1 {
                 queue.push(DirectionalCandidate {
                     direction: Directional::Row,
-                    index: row_count[0] + (grid_row as u8 * 3),
+                    index: row_count[0],
                     grid_row,
                     grid_col,
                     value: val as u8,
@@ -165,12 +213,41 @@ impl Group {
             if col_count.len() == 1 {
                 queue.push(DirectionalCandidate {
                     direction: Directional::Column,
-                    index: col_count[0] + (grid_col as u8 * 3),
+                    index: col_count[0],
                     grid_row,
                     grid_col,
                     value: val as u8,
                 });
             }
+            // row_count.clear();
+            // col_count.clear();
+            
+            // for idx in 0..3 {
+            //     if (self.group_candidates[0][idx] & (1 << val)) != 0 {
+            //         row_count.push(idx as u8);
+            //     }
+            //     if (self.group_candidates[1][idx] & (1 << val)) != 0 {
+            //         col_count.push(idx as u8);
+            //     }
+            // }
+            // if row_count.len() == 1 {
+            //     queue.push(DirectionalCandidate {
+            //         direction: Directional::Row,
+            //         index: row_count[0],
+            //         grid_row,
+            //         grid_col,
+            //         value: val as u8,
+            //     });
+            // }
+            // if col_count.len() == 1 {
+            //     queue.push(DirectionalCandidate {
+            //         direction: Directional::Column,
+            //         index: col_count[0],
+            //         grid_row,
+            //         grid_col,
+            //         value: val as u8,
+            //     });
+            // }
         }
     }
 
